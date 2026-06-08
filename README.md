@@ -31,7 +31,25 @@ Many skills in this repo are open source (Apache 2.0). We've also included the d
 # Try in Claude Code, Claude.ai, and the API
 
 ## Claude Code
-You can register this repository as a Claude Code Plugin marketplace by running the following command in Claude Code:
+
+Install skills directly using `npx`:
+
+```bash
+# Install all skills from this repository
+npx skills add anthropics/skills
+
+# Or install specific skills only
+npx skills add anthropics/skills --skill document-skills
+npx skills add anthropics/skills --skill claude-api
+```
+
+Discover available skills interactively:
+
+```bash
+npx skills find "document"
+```
+
+You can also use Claude Code's built-in plugin marketplace. Register this repository by running the following command in Claude Code:
 ```
 /plugin marketplace add anthropics/skills
 ```
