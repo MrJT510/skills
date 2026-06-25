@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#15304e" />
+<title>FieldStat — Prehospital Cardiac Arrest Timer</title>
+<meta name="ext-resource-dependency" content="assets/fieldstat-emblem.png" data-resource-id="fieldstatLogo" />
+<link rel="apple-touch-icon" href="assets/fieldstat-icon.png" />
+<link rel="icon" type="image/png" href="assets/fieldstat-emblem.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0b0f17;
+    --ink-2: #3a4252;
+    --ink-3: #6b7280;
+    --line: #e5e7eb;
+    --line-2: #eef0f3;
+    --paper: #f5f6f8;
+    --card: #ffffff;
+    --green: #1f9d55;
+    --green-tint: #e8f6ee;
+    --green-deep: #126e3b;
+    --amber: #d97706;
+    --amber-tint: #fff3e0;
+    --amber-deep: #9a4d05;
+    --red: #dc2626;
+    --red-tint: #fdecec;
+    --red-deep: #991111;
+    --blue: #2563eb;
+    --blue-tint: #e6efff;
+    --blue-deep: #1746a8;
+    --gray-tint: #eef0f3;
+    --phase: var(--green);
+    --phase-tint: var(--green-tint);
+    --phase-deep: var(--green-deep);
+  }
+  /* Dark theme — paper goes near-black, phase colors stay vivid */
+  .app.dark {
+    --ink: #f1f4f8;
+    --ink-2: #b6bfcc;
+    --ink-3: #8590a0;
+    --line: #2b323f;
+    --line-2: #222936;
+    --paper: #0b0e13;
+    --card: #161b24;
+    --gray-tint: #222936;
+  }
+  .app.dark input, .app.dark textarea, .app.dark select {
+    color: var(--ink); background: var(--card); border-color: var(--line);
+  }
+  .app.dark input::placeholder, .app.dark textarea::placeholder { color: var(--ink-3); }
+  .app.dark { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #1c1f25;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  html, body { height: 100%; height: 100dvh; }
+
+  /* ── Default: full-bleed app on phones & tablets (iPhone / Android / iPad) ── */
+  body {
+    display: flex; align-items: stretch; justify-content: center;
+    height: 100dvh; min-height: 100dvh; padding: 0; box-sizing: border-box;
+    background: var(--paper);
+  }
+  #root {
+    width: 100%; height: 100dvh; display: flex;
+    align-items: stretch; justify-content: center;
+  }
+  .app-shell-card {
+    width: 100%;
+    height: 100dvh;
+    background: var(--paper);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+  .app-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .app-safe-top    { padding-top:    env(safe-area-inset-top); }
+
+  /* ── Desktop / large laptops: centered full-height app column on dark backdrop ── */
+  @media (min-width: 1025px) {
+    body {
+      align-items: stretch; justify-content: center;
+      background: radial-gradient(1200px 700px at 50% 0%, #2a2f3a 0%, #1c1f25 60%);
+    }
+    #root { align-items: stretch; }
+    .app-shell-card {
+      width: 460px; max-width: 100%;
+      height: 100dvh;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 30px 80px rgba(0,0,0,0.4);
+    }
+  }
+
+  .etco2-wheel::-webkit-scrollbar { width: 0; height: 0; }
+  .etco2-wheel { -ms-overflow-style: none; scrollbar-width: none; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .app {
+    width: 100%; height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  }
+  .scroll { overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  .scroll::-webkit-scrollbar { width: 0; height: 0; }
+  button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; border: none; background: transparent; color: inherit; padding: 0; }
+  button:active { transform: scale(0.985); }
+  input, textarea, select { font-family: inherit; }
+  textarea { resize: none; }
+
+  /* Phase color transitions */
+  .phase-bar, .phase-fill { transition: background-color 400ms ease, color 400ms ease, border-color 400ms ease; }
+
+  /* Blink animation for critical timers — strong, high-contrast pulse */
+  @keyframes blinkBg {
+    0%, 100% { background-color: var(--red); }
+    50% { background-color: #f8a4a4; }
+  }
+  .blink { animation: blinkBg 1s ease-in-out infinite; }
+
+  /* Aggressive critical pulse — scale + glow for max glanceability */
+  @keyframes criticalPulse {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(220,38,38,0.0); }
+    35%  { transform: scale(1.035); box-shadow: 0 0 0 6px rgba(220,38,38,0.28); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(220,38,38,0.0); }
+  }
+  .critical { animation: criticalPulse 0.85s ease-in-out infinite; }
+  @keyframes amberPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.0); }
+    50%     { box-shadow: 0 0 0 4px rgba(217,119,6,0.22); }
+  }
+  .warnpulse { animation: amberPulse 1.1s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .critical, .warnpulse, .blink { animation: none; }
+  }
+  .ring-track { stroke: var(--line); }
+
+  /* Metronome pulse */
+  @keyframes pulse {
+    0% { transform: scale(0.85); opacity: 0.5; }
+    20% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0.85); opacity: 0.5; }
+  }
+  .beat-dot.on { animation: pulse 0.545s ease-in-out infinite; }
+
+  /* Card style */
+  .card { background: var(--card); border-radius: 14px; padding: 14px; }
+  .card-tight { background: var(--card); border-radius: 12px; padding: 12px; }
+
+  /* Section title */
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 600; color: var(--ink-3); margin: 14px 4px 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .count {
+    color: var(--ink); background: var(--line-2); padding: 2px 7px; border-radius: 8px;
+    font-size: 10px; letter-spacing: 0.02em; text-transform: none; font-weight: 600;
+  }
+
+  /* Pill */
+  .pill {
+    border-radius: 999px; padding: 9px 14px; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill.on { background: var(--ink); color: white; border-color: var(--ink); }
+
+  /* Tap target */
+  .tap { min-height: 44px; }
+
+  /* Slide-in for overlay */
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0); max-height: 320px; }
+  }
+  .slide-in { animation: slideDown 240ms cubic-bezier(.2,.7,.2,1); overflow: hidden; }
+
+  /* Status bar — layered depth + subtle sheen */
+  .phase-bar {
+    background: var(--phase);
+    color: white;
+    position: relative;
+    box-shadow: 0 6px 20px -6px rgba(0,0,0,0.35);
+  }
+  .phase-bar::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 28%, rgba(0,0,0,0.06) 100%);
+  }
+  .phase-bar > * { position: relative; z-index: 1; }
+
+  /* Depth & materiality on cards */
+  .card, .card-tight {
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 4px 14px -6px rgba(16,24,40,0.10);
+    border: 1px solid var(--line);
+  }
+  .app.dark .card, .app.dark .card-tight {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 6px 18px -8px rgba(0,0,0,0.6);
+  }
+
+  /* Hero ring "breathing" glow */
+  @keyframes ringBreathe {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.045); filter: brightness(1.08); }
+  }
+  .ring-breathe { animation: ringBreathe 2.4s ease-in-out infinite; }
+
+  /* Compression-cadence halo — pulses at ~110 bpm (0.545s) */
+  @keyframes cadencePulse {
+    0%   { box-shadow: 0 0 0 0 var(--cad, rgba(31,157,85,0.5)); }
+    30%  { box-shadow: 0 0 0 7px rgba(0,0,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  }
+  .cadence { border-radius: 999px; animation: cadencePulse 0.545s ease-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .cadence { animation: none; } }
+
+  /* Tab content entrance */
+  .tab-enter { animation: cardRise 320ms cubic-bezier(.2,.7,.2,1) both; }
+
+  /* Bottom sheet rise */
+  @keyframes sheetRise {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .sheet-rise { animation: sheetRise 260ms cubic-bezier(.2,.8,.2,1) both; }
+
+  /* Phase-reactive ambient backdrop — a soft breathing glow behind everything */
+  .phase-ambient {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(130% 55% at 50% -12%, var(--phase-amb, transparent) 0%, transparent 58%),
+      radial-gradient(90% 50% at 100% 105%, var(--phase-amb2, transparent) 0%, transparent 60%);
+    opacity: 0.5;
+    transition: background 600ms ease;
+    animation: ambientBreathe 6s ease-in-out infinite;
+  }
+  @keyframes ambientBreathe {
+    0%, 100% { opacity: 0.32; }
+    50%      { opacity: 0.6; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .phase-ambient { animation: none; }
+  }
+
+  /* Motion choreography — staggered card entrances on tab switch */
+  @keyframes cardRise {
+    from { opacity: 0; transform: translateY(10px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .stagger > * {
+    animation: cardRise 360ms cubic-bezier(.2,.7,.2,1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger > *:nth-child(2) { animation-delay: 35ms; }
+  .stagger > *:nth-child(3) { animation-delay: 70ms; }
+  .stagger > *:nth-child(4) { animation-delay: 105ms; }
+  .stagger > *:nth-child(5) { animation-delay: 140ms; }
+  .stagger > *:nth-child(6) { animation-delay: 175ms; }
+  .stagger > *:nth-child(7) { animation-delay: 210ms; }
+  .stagger > *:nth-child(n+8) { animation-delay: 240ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .ring-breathe, .stagger > * { animation: none; }
+  }
+
+  /* Toast/log entry feedback */
+  @keyframes flash {
+    0% { background-color: #fff7c2; }
+    100% { background-color: transparent; }
+  }
+  .flash { animation: flash 600ms ease-out; }
+
+  /* Disabled */
+  .dim { opacity: 0.4; pointer-events: none; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0c1c30">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0c1c30"/>
+    <path d="M600 620 C 380 470, 300 360, 300 270 C 300 190, 360 150, 430 150 C 500 150, 560 200, 600 260 C 640 200, 700 150, 770 150 C 840 150, 900 190, 900 270 C 900 360, 820 470, 600 620 Z" fill="#1e3160"/>
+    <rect x="545" y="300" width="110" height="240" rx="8" fill="#ffffff"/>
+    <rect x="480" y="365" width="240" height="110" rx="8" fill="#ffffff"/>
+    <path d="M430 560 L520 470 L560 510 L610 400 L660 470 L770 320" stroke="#c9a227" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M740 300 L800 285 L785 345 Z" fill="#c9a227"/>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="store.jsx"></script>
+<script type="text/babel" src="audio.jsx"></script>
+<script type="text/babel" src="ecg.jsx"></script>
+<script type="text/babel" src="chrome.jsx"></script>
+<script type="text/babel" src="launch.jsx"></script>
+<script type="text/babel" src="tab-rhythm.jsx"></script>
+<script type="text/babel" src="tab-meds.jsx"></script>
+<script type="text/babel" src="tab-airway-cpr.jsx"></script>
+<script type="text/babel" src="tab-log-export.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
+</body>
+</html>
