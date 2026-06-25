@@ -1,0 +1,14 @@
+{
+  "name": "Resuscribe — Prehospital Cardiac Arrest Timer",
+  "short_name": "Resuscribe",
+  "description": "A glanceable timer and documentation aid for prehospital cardiac-arrest resuscitation.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c1c30",
+  "theme_color": "#15304e",
+  "icons": [
+    { "src": "assets/fieldstat-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

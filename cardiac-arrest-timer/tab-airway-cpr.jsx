@@ -798,6 +798,77 @@ function MetronomeBeat({ on, bpm }) {
   return null;
 }
 
+// ETCO₂ trend — objective CPR-quality + ROSC feedback from serial readings.
+function Etco2Trend() {
+  const { s, set } = useStore();
+  const rd = s.etco2Readings || [];
+  const latest = rd.length ? rd[rd.length - 1] : null;
+  const prev = rd.length > 1 ? rd[rd.length - 2] : null;
+
+  let stColor = '#1f9d55', stText = 'Good perfusion';
+  if (latest) {
+    if (latest.v < 10) { stColor = '#dc2626'; stText = 'Low — push harder/faster'; }
+    else if (latest.v < 35) { stColor = '#d97706'; stText = 'Compressions adequate'; }
+  }
+  // Abrupt rise in ETCO₂ is an early ROSC sign — prompt a pulse check.
+  const roscCue = latest && prev && (latest.v - prev.v >= 10) && latest.v >= 30;
+
+  const W = 300, H = 64, pad = 6;
+  const yMax = Math.max(50, ...rd.map(r => r.v + 5));
+  const n = rd.length;
+  const xf = (i) => n <= 1 ? W / 2 : pad + (i / (n - 1)) * (W - 2 * pad);
+  const yf = (v) => H - pad - (v / yMax) * (H - 2 * pad);
+  const pts = rd.map((r, i) => `${xf(i)},${yf(r.v)}`).join(' ');
+  const bandTop = yf(45), bandBot = yf(35);
+
+  return (
+    <>
+      <div className="section-title">ETCO₂ trend
+        {rd.length > 0 && <span className="count">{rd.length}</span>}
+      </div>
+      {latest ? (
+        <div className="card" style={{ border: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <div className="mono" style={{ fontSize: 32, fontWeight: 800, color: stColor, lineHeight: 1 }}>{latest.v}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>mmHg</div>
+            <div style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: stColor, textAlign: 'right' }}>{stText}</div>
+          </div>
+          {roscCue && (
+            <div style={{
+              marginTop: 8, padding: '7px 10px', borderRadius: 8, background: '#e0f2fe',
+              border: '1px solid #0ea5e9', color: '#075985', fontSize: 11.5, fontWeight: 700,
+              display: 'flex', gap: 7, alignItems: 'center',
+            }}>
+              <Ic.Heart s={13} c="#0ea5e9" /> Abrupt rise — check pulse (possible ROSC)
+            </div>
+          )}
+          <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ marginTop: 10, display: 'block' }}>
+            <rect x="0" y={bandTop} width={W} height={Math.max(0, bandBot - bandTop)} fill="#1f9d5518" />
+            <line x1="0" y1={bandBot} x2={W} y2={bandBot} stroke="#1f9d5544" strokeWidth="1" strokeDasharray="3 3" />
+            {n > 1 && <polyline points={pts} fill="none" stroke={stColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+            {rd.map((r, i) => (
+              <circle key={i} cx={xf(i)} cy={yf(r.v)} r={i === n - 1 ? 4 : 2.5} fill={i === n - 1 ? stColor : '#6b7280'} />
+            ))}
+          </svg>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: 'var(--ink-3)', marginTop: 2 }}>
+            <span>first {fmtMMSS(rd[0].t)}</span>
+            <span>target 35–45</span>
+            <span>now {fmtMMSS(latest.t)}</span>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => set({ activeTab: 'airway', flashTab: 'airway' })} className="card" style={{
+          border: '1.5px dashed #cbd0d8', width: '100%', textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 9,
+        }}>
+          <Ic.Plus s={16} c="#3a4252" />
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>Log ETCO₂ in the Airway tab to see the trend</span>
+        </button>
+      )}
+    </>
+  );
+}
+
 function CPRTab() {
   const { s, set, setS } = useStore();
 
@@ -853,6 +924,8 @@ function CPRTab() {
           <span><b>Lucas / mechanical CPR prohibited</b> in traumatic arrest (local protocol)</span>
         </div>
       )}
+
+      <Etco2Trend />
 
       <TeamSection />
 

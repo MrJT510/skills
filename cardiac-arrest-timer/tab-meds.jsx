@@ -1,6 +1,6 @@
 // tab-meds.jsx — Meds tab
 
-function DrugCard({ accent, name, dose, lastT, count, onClick, disabled, sublabel, maxedNote }) {
+function DrugCard({ accent, name, dose, lastT, count, onClick, disabled, sublabel, maxedNote, due }) {
   const accentColor = accent === 'red' ? '#dc2626' : accent === 'blue' ? '#2563eb' : '#9ca3af';
   return (
     <button onClick={disabled ? null : onClick} className={disabled ? 'dim' : ''} style={{
@@ -30,7 +30,13 @@ function DrugCard({ accent, name, dose, lastT, count, onClick, disabled, sublabe
         )}
       </div>
       <div style={{ textAlign: 'right' }}>
-        {lastT != null ? (
+        {due && lastT != null ? (
+          <div className="warnpulse" style={{
+            fontSize: 11, fontWeight: 800, color: '#9a4d05', background: '#fff3e0',
+            border: '1px solid #d97706', padding: '5px 9px', borderRadius: 8,
+            letterSpacing: '0.04em',
+          }}>DUE NOW</div>
+        ) : lastT != null ? (
           <div className="mono" style={{
             fontSize: 11.5, fontWeight: 700, color: '#1f9d55',
             display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end',
@@ -70,6 +76,11 @@ function MedsTab() {
     }
     if (s.arrestType === 'traumatic') {
       set({ showTraumaticEpiConfirm: true });
+      return;
+    }
+    // Hypothermic + cold: protocol holds meds — confirm (give-anyway) like the main screen
+    if (s.arrestType === 'hypothermic' && !s.coreWarm) {
+      set({ showHypoEpiConfirm: true });
       return;
     }
     confirmEpi();
@@ -115,6 +126,8 @@ function MedsTab() {
 
   const pedDose = s.patientMode === 'pediatric' ? BROSELOW[s.broselowIdx] : null;
   const epiDose = pedDose ? pedDose.epi : '1 mg IV/IO (1:10,000)';
+  const epiSec = s.epiLastAt == null ? null : (s.elapsed - s.epiLastAt);
+  const epiDue = epiSec != null && epiSec >= 180;   // next Epi due ~every 3-5 min
 
   // Last given time for non-Epi single-shot drugs
   const lastTimeOf = (name) => {
@@ -179,6 +192,7 @@ function MedsTab() {
           dose={epiDose}
           lastT={s.epiLastAt}
           count={s.epiCount}
+          due={epiDue}
           onClick={logEpi}
         />
         {pedDose ? (

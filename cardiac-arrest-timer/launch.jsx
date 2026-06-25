@@ -225,7 +225,7 @@ function LaunchScreen() {
                 <button key={c.id} onClick={() => set({ codeStatus: c.id })} style={{
                   padding: '9px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
                   background: active ? onColor : 'var(--card)',
-                  color: active ? '#fff' : (danger ? '#b91c1c' : 'var(--ink-2)'),
+                  color: active ? (danger ? '#fff' : 'var(--paper)') : (danger ? '#b91c1c' : 'var(--ink-2)'),
                   border: `1px solid ${active ? onColor : (danger ? '#b91c1c55' : 'var(--line)')}`,
                   whiteSpace: 'nowrap',
                 }}>{c.label}</button>
