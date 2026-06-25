@@ -106,7 +106,7 @@ function LaunchScreen() {
       minHeight: 0,
     }}>
       <div className="scroll" style={{ flex: 1, minHeight: 0, padding: '14px 14px 8px' }}>
-      {/* Header — FieldStat brand hero */}
+      {/* Header — Resuscribe brand hero */}
       <div style={{
         margin: '-14px -14px 14px', padding: '26px 14px 20px',
         background: 'radial-gradient(125% 95% at 50% 5%, #1a3557 0%, #0c1c30 55%, #0a1424 100%)',
@@ -119,14 +119,14 @@ function LaunchScreen() {
           width: 200, height: 200, borderRadius: '50%', pointerEvents: 'none',
           background: 'radial-gradient(circle, rgba(201,162,39,0.22) 0%, rgba(255,255,255,0.06) 38%, transparent 68%)',
         }} />
-        <img src={(window.__resources && window.__resources.fieldstatLogo) || 'assets/fieldstat-emblem.png'} alt="FieldStat"
+        <img src={(window.__resources && window.__resources.fieldstatLogo) || 'assets/fieldstat-emblem.png'} alt="Resuscribe"
           style={{ width: 132, height: 132, objectFit: 'contain', position: 'relative',
             filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.5))' }} />
         <div style={{
-          position: 'relative', marginTop: 10, fontSize: 30, fontWeight: 800,
-          letterSpacing: '0.02em', lineHeight: 1,
+          position: 'relative', marginTop: 10, fontSize: 29, fontWeight: 800,
+          letterSpacing: '0.01em', lineHeight: 1,
         }}>
-          <span style={{ color: '#f4f7fb' }}>Field</span><span style={{ color: '#c9a227' }}>Stat</span>
+          <span style={{ color: '#f4f7fb' }}>Resus</span><span style={{ color: '#c9a227' }}>cribe</span>
         </div>
         <div style={{
           position: 'relative', fontSize: 10, color: '#c9a227', marginTop: 7,

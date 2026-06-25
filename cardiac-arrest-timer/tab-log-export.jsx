@@ -129,7 +129,7 @@ const stepBtn = {
 function buildExportText(s, statusLabel) {
   const lines = [];
   lines.push('════════════════════════════════════════');
-  lines.push('FieldStat · Prehospital Cardiac Arrest Timer');
+  lines.push('Resuscribe · Prehospital Cardiac Arrest Timer');
   lines.push('────────────────────────────────────────');
   lines.push('CARDIAC ARREST RESUSCITATION RECORD');
   lines.push('EMS resuscitation protocol');

@@ -1,4 +1,4 @@
-# FieldStat — Prehospital Cardiac Arrest Timer
+# Resuscribe — Prehospital Cardiac Arrest Timer
 
 A glanceable, single-screen timer and documentation aid for prehospital
 cardiac-arrest resuscitation. Built to keep a provider on-protocol during a
@@ -22,7 +22,7 @@ The app is plain React via Babel-in-browser — no build step.
   npx serve .        # or: python3 -m http.server
   ```
 
-- **`FieldStat - Standalone.html`** is a self-contained single-file export
+- **`Resuscribe - Standalone.html`** is a self-contained single-file export
   (prior build). The modular `*.jsx` files are the source of truth; regenerate
   the standalone from them when publishing.
 
