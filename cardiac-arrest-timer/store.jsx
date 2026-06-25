@@ -50,7 +50,7 @@ const ARREST_TYPES = [
 
 const SPECIAL_ALERTS = {
   traumatic:   { text: 'Immediate transport to trauma center — all care en route. Do not resuscitate if initial ECG is asystole, PEA <40, or trauma center >20 min away. Epi only if NOT exsanguinating.', ref: '§11' },
-  hypothermic: { text: 'Assess pulse 45 seconds. Limit to 1 shock until warm. Withhold IV meds until temp >86°F.', ref: '§7' },
+  hypothermic: { text: 'Severe hypothermia — rewarm aggressively, rapid transport. Set core temp below to gate shocks & meds.', ref: '§7' },
   vad:         { text: 'No mechanical CPR. No compressions if rotor hum present. Transport to nearest VAD-capable center.', ref: '§8' },
   drowning:    { text: 'Transport to trauma center if spinal injury suspected.', ref: '§10' },
   pregnant:    { text: 'Transport to nearest facility for resuscitative hysterotomy.', ref: '§9' },

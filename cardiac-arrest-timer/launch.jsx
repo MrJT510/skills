@@ -50,10 +50,13 @@ function SetupCard({ title, children }) {
     <div className="card" style={{
       border: '1px solid var(--line)',
     }}>
-      <div style={{
-        fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.06em', color: 'var(--ink-3)', marginBottom: 10,
-      }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+        <span style={{ width: 3, height: 11, borderRadius: 2, background: '#c9a227', flexShrink: 0 }} />
+        <span style={{
+          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.06em', color: 'var(--ink-3)',
+        }}>{title}</span>
+      </div>
       {children}
     </div>
   );
@@ -258,10 +261,11 @@ function LaunchScreen() {
       }}>
         <button onClick={startEvent} style={{
           width: '100%', padding: '22px 16px',
-          background: '#1f9d55', color: '#fff',
+          background: 'linear-gradient(135deg, #25b063 0%, #1f9d55 55%, #17833f 100%)', color: '#fff',
+          border: '1px solid rgba(255,255,255,0.18)',
           borderRadius: 18, fontSize: 22, fontWeight: 700, letterSpacing: '0.04em',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          boxShadow: '0 12px 28px rgba(31,157,85,0.45), 0 2px 6px rgba(31,157,85,0.3)',
+          boxShadow: '0 14px 30px -6px rgba(31,157,85,0.5), 0 2px 6px rgba(31,157,85,0.3)',
         }}>
           <Ic.Play s={26} c="#fff" />
           <span>OPEN EVENT</span>
