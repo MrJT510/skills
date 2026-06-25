@@ -1,5 +1,21 @@
 # Changelog
 
+## Design + practicality pass
+
+Tuned for the real user: a first responder under stress who needs the app to
+*tell them what to do* and never fight their judgment.
+
+- **"Do next" promoted to the screen's hero.** The next-step guidance — the
+  feature that keeps an average provider on-protocol mid-code — is now a large,
+  high-contrast card with a phase-colored directive badge, gradient depth, and
+  19px instruction text. It reads at a glance from arm's length. `chrome.jsx`
+
+- **Airway respects provider judgment.** The airway list is guidance, not a
+  forced ladder: providers can go straight to an LMA without intubating. Every
+  option stays available in both modes. Pediatric leads with the supraglottic
+  (LMA) device and keeps ETT available but ordered last (not a typical
+  pediatric field step); adult leads with ETT. `tab-airway-cpr.jsx`
+
 ## Clinical-accuracy + capability pass
 
 This pass cross-checked every clinical value in the app against the current

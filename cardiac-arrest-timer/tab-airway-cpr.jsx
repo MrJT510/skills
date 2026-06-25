@@ -4,20 +4,19 @@ function AirwayTab() {
   const { s, set, setS } = useStore();
   const ped = s.patientMode === 'pediatric';
 
-  // Mode-aware airway ladder.
-  //  • Adult: ETT first-line (ALS), then LMA → OPA; BVM ventilates 1:6.
-  //  • Pediatric: supraglottic (LMA) first-line, then OPA; ETT is not a
-  //    pediatric field step, so it is omitted. BVM ventilates 1:3.
+  // Mode-aware airway ladder — guidance, never a forced sequence. Providers
+  // pick what fits the patient (e.g. straight to LMA without intubating).
+  //  • Adult: ETT first-line, then LMA → OPA; BVM ventilates 1:6.
+  //  • Pediatric: supraglottic (LMA) first-line, then OPA; BVM ventilates 1:3.
+  //    ETT stays available but is ordered last (not a typical pediatric step).
   const interventions = React.useMemo(() => {
     let list = AIRWAY_INTERVENTIONS.map(it =>
       it.id === 'bvm' ? { ...it, label: ped ? 'BVM (1:3)' : 'BVM (1:6)' } : it
     );
-    if (ped) {
-      list = list.filter(it => it.id !== 'ett');
-      const order = ['lma', 'opa', 'etco2', 'bvm', 'npa'];
-      list = list.slice().sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-    }
-    return list;
+    const order = ped
+      ? ['lma', 'opa', 'etco2', 'bvm', 'npa', 'ett']
+      : ['ett', 'lma', 'opa', 'bvm', 'etco2', 'npa'];
+    return list.slice().sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   }, [ped]);
 
   const [picker, setPicker] = React.useState(null); // 'intubation' | 'lma' | null

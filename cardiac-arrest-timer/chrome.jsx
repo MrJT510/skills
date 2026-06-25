@@ -48,29 +48,46 @@ function FlowRibbon() {
   return (
     <div style={{ padding: '10px 12px 0' }}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 11,
-        background: `${next.color}14`,
-        border: `1.5px solid ${next.color}55`,
-        borderLeft: `5px solid ${next.color}`,
-        borderRadius: 12, padding: '11px 13px',
+        position: 'relative', overflow: 'hidden',
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: `linear-gradient(135deg, ${next.color}26 0%, ${next.color}0d 55%, transparent 100%)`,
+        border: `1.5px solid ${next.color}44`,
+        borderLeft: `6px solid ${next.color}`,
+        borderRadius: 16, padding: '13px 14px',
+        boxShadow: `0 10px 26px -14px ${next.color}, 0 1px 2px rgba(16,24,40,0.04)`,
       }}>
+        {/* Directive icon badge — the focal point */}
         <div style={{
-          width: 9, height: 9, borderRadius: 99, background: next.color, flexShrink: 0,
-          boxShadow: `0 0 0 4px ${next.color}22`,
-        }} />
+          width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+          background: next.color, color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 6px 16px -4px ${next.color}`,
+        }}>
+          <Ic.ChevR s={24} c="#fff" />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 9.5, fontWeight: 800, color: next.color,
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-          }}>Do next</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2, marginTop: 2 }}>
+            fontSize: 10, fontWeight: 800, color: next.color,
+            textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 3,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: 99, background: next.color,
+              boxShadow: `0 0 0 3px ${next.color}33`,
+            }} />
+            Do next
+          </div>
+          <div style={{
+            fontSize: 19, fontWeight: 800, color: 'var(--ink)',
+            lineHeight: 1.15, letterSpacing: '-0.01em',
+          }}>
             {next.label}
           </div>
         </div>
         {canUndo && (
           <button onClick={undo} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-            padding: '6px 9px', borderRadius: 9, background: 'var(--card)',
+            padding: '7px 10px', borderRadius: 10, background: 'var(--card)',
             border: '1px solid var(--line)', color: 'var(--ink-2)', flexShrink: 0,
           }}>
             <Ic.Rotate s={15} c="var(--ink-2)" />
