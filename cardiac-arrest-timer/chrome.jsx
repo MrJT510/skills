@@ -1368,6 +1368,7 @@ function FocusMode() {
 
   const colors = PHASE_COLORS[phase] || PHASE_COLORS.green;
   const hasAccess = Object.keys(s.vascular).length > 0;
+  const next = computeNextStep(s);
 
   // Pulse-cycle ring
   const pulseElapsed = s.elapsed - s.pulseCheckResetAt;
@@ -1451,8 +1452,31 @@ function FocusMode() {
         }}><Ic.Collapse s={15} c="#fff" /> Exit</button>
       </div>
 
+      {/* Do-next directive — the single thing to do, big and glanceable */}
+      <div style={{
+        margin: '4px 12px 0', padding: '10px 14px', borderRadius: 14,
+        background: `linear-gradient(135deg, ${next.color}33 0%, ${next.color}12 60%, rgba(255,255,255,0.02) 100%)`,
+        border: `1px solid ${next.color}55`, borderLeft: `5px solid ${next.color}`,
+        display: 'flex', alignItems: 'center', gap: 11,
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 11, flexShrink: 0, background: next.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 5px 14px -4px ${next.color}`,
+        }}>
+          <Ic.ChevR s={21} c="#fff" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 9.5, fontWeight: 800, color: next.color, textTransform: 'uppercase',
+            letterSpacing: '0.14em', marginBottom: 2,
+          }}>Do next</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.15 }}>{next.label}</div>
+        </div>
+      </div>
+
       {/* Hero pulse ring */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 6px' }}>
         <div className={pulseRemain > 0 ? 'cadence' : ''} style={{ '--cad': ringColor + '88', display: 'flex' }}>
           <ProgressRing size={150} stroke={12} fraction={fraction} color={ringColor} glow breathe={pulseRemain > 20}>
             <div className="mono" style={{ fontSize: 40, fontWeight: 800, color: '#fff' }}>{fmtMMSS(pulseRemain)}</div>
