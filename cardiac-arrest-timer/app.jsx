@@ -67,6 +67,91 @@ function AppInner() {
       {s.screen === 'active' && <FocusMode />}
       <TwentyMinDecision />
       <TerminateConfirm />
+      <FirstRunOverlay />
+    </div>
+  );
+}
+
+// ─── First-run onboarding ────────────────────────────────
+// Shown once (localStorage-flagged), only on the launch screen, always
+// dismissible in one tap so it never delays a real code.
+function FirstRunOverlay() {
+  const { s } = useStore();
+  const [show, setShow] = React.useState(() => {
+    try { return !localStorage.getItem('resuscribe.onboarded'); } catch (e) { return false; }
+  });
+  if (!show || s.screen !== 'launch') return null;
+  const dismiss = () => {
+    try { localStorage.setItem('resuscribe.onboarded', '1'); } catch (e) {}
+    setShow(false);
+  };
+
+  const Step = ({ color, n, title, body }) => (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <div style={{
+        width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: color, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800,
+        boxShadow: `0 5px 13px -4px ${color}`,
+      }}>{n}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2 }}>{title}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 2, lineHeight: 1.4 }}>{body}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 120,
+      background: 'rgba(6,9,15,0.62)', backdropFilter: 'blur(3px)',
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+    }}>
+      <div className="sheet-rise" style={{
+        background: 'var(--card)', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: '18px 18px max(18px, env(safe-area-inset-bottom))',
+        boxShadow: '0 -22px 55px rgba(0,0,0,0.45)',
+      }}>
+        {/* Brand row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <img src={(window.__resources && window.__resources.fieldstatLogo) || 'assets/fieldstat-emblem.png'}
+               alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.01em' }}>
+              <span style={{ color: 'var(--ink)' }}>Resus</span><span style={{ color: '#c9a227' }}>cribe</span>
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '0.04em' }}>
+              Get the gist in 10 seconds
+            </div>
+          </div>
+          <button onClick={dismiss} aria-label="Close" style={{
+            width: 30, height: 30, borderRadius: 99, background: 'var(--line-2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}><Ic.X s={14} c="var(--ink-2)" /></button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '16px 2px 16px' }}>
+          <Step color="#1f9d55" n="1" title="Watch the clock"
+                body="The timer up top runs the whole code — elapsed time and the 2-minute pulse-check ring." />
+          <Step color="#d97706" n="2" title="Follow “Do next”"
+                body="The highlighted bar always shows the single next action. Unsure? Do what it says." />
+          <Step color="#2563eb" n="3" title="Tap to log"
+                body="Big buttons log Epi, shocks, pulse checks, airway and access in one tap — all timestamped." />
+        </div>
+
+        <div style={{
+          fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.4, marginBottom: 14,
+          padding: '9px 11px', background: 'var(--paper)', borderRadius: 10,
+        }}>
+          Everything you tap builds a clean handoff record — with <b>zero patient identifiers</b>.
+        </div>
+
+        <button onClick={dismiss} style={{
+          width: '100%', padding: '15px', borderRadius: 14, fontSize: 16, fontWeight: 800,
+          background: 'linear-gradient(135deg, #25b063 0%, #1f9d55 55%, #17833f 100%)', color: '#fff',
+          border: '1px solid rgba(255,255,255,0.18)', letterSpacing: '0.02em',
+          boxShadow: '0 12px 26px -8px rgba(31,157,85,0.55)',
+        }}>Got it — let's go</button>
+      </div>
     </div>
   );
 }
