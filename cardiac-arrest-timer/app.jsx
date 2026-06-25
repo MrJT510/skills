@@ -36,6 +36,7 @@ function ActiveScreen() {
       <div style={{ flexShrink: 0, position: 'relative', zIndex: 1 }}>
         <StatusBar />
         <AlertBanner />
+        <HypoTempToggle />
         <FlowRibbon />
         <InitialRhythmCheck />
         <SubTimers />

@@ -139,6 +139,15 @@ function computeNextStep(s) {
     return { color: '#2563eb', label: 'Organized rhythm — check pulse for ROSC' };
   }
 
+  // ── Severe hypothermia (core <86°F / 30°C): 1 shock max, withhold meds, rewarm ──
+  if (s.arrestType === 'hypothermic' && !s.coreWarm) {
+    if (SHOCKABLE(id)) {
+      if (s.shocks.length === 0) return { color: '#d97706', label: 'Shockable — single defibrillation, then rewarm' };
+      return { color: '#0ea5e9', label: 'Hold shocks until >86°F · CPR · rewarm · transport' };
+    }
+    return { color: '#0ea5e9', label: 'Withhold meds until >86°F · CPR · rewarm · transport' };
+  }
+
   const hasAccess = Object.keys(s.vascular).length > 0;
   const epiSec = s.epiLastAt == null ? null : (s.elapsed - s.epiLastAt);
   const epiDue = s.epiCount === 0 || (epiSec != null && epiSec >= 180);
@@ -375,6 +384,51 @@ function AlertBanner() {
   );
 }
 
+// ─── Hypothermic core-temp gate ──────────────────────────
+// Drives the live protocol gating: cold (<86°F/30°C) holds Epi and extra shocks.
+function HypoTempToggle() {
+  const { s, set, setS } = useStore();
+  if (s.arrestType !== 'hypothermic') return null;
+  const cold = !s.coreWarm;
+  const setWarm = (warm) => {
+    if (warm === s.coreWarm) return;
+    setS(prev => ({ ...prev, coreWarm: warm,
+      log: [...prev.log, { t: prev.elapsed, action: `Core temp ${warm ? '≥' : '<'} 86°F (30°C)`,
+        detail: warm ? 'Rewarmed — standard ACLS resumes' : 'Hold meds + extra shocks until rewarmed', kind: 'event' }] }));
+  };
+  const Pill = ({ active, activeBg, label, sub, onClick }) => (
+    <button onClick={onClick} style={{
+      flex: 1, padding: '8px 6px', borderRadius: 10,
+      background: active ? activeBg : 'var(--card)',
+      color: active ? '#fff' : 'var(--ink-2)',
+      border: `1.5px solid ${active ? activeBg : 'var(--line)'}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+    }}>
+      <span style={{ fontSize: 13, fontWeight: 800 }}>{label}</span>
+      <span style={{ fontSize: 9, fontWeight: 600, opacity: active ? 0.9 : 0.7 }}>{sub}</span>
+    </button>
+  );
+  return (
+    <div style={{ padding: '8px 12px 0' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 10px', borderRadius: 12,
+        background: cold ? '#e0f2fe' : '#e8f6ee',
+        border: `1px solid ${cold ? '#0ea5e955' : '#1f9d5555'}`,
+      }}>
+        <div style={{ fontSize: 9.5, fontWeight: 800, color: cold ? '#075985' : '#126e3b',
+          textTransform: 'uppercase', letterSpacing: '0.08em', width: 46, lineHeight: 1.15 }}>Core temp</div>
+        <div style={{ display: 'flex', gap: 6, flex: 1 }}>
+          <Pill active={cold} activeBg="#0ea5e9" label="< 86°F" sub="cold — gated"
+            onClick={() => setWarm(false)} />
+          <Pill active={!cold} activeBg="#1f9d55" label="≥ 86°F" sub="warm — full ACLS"
+            onClick={() => setWarm(true)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-timers (Epi + Pulse-cycle ring) ─────────────────
 function SubTimers() {
   const { s, set, setS, cycle } = useStore();
@@ -384,6 +438,10 @@ function SubTimers() {
     // Hard gate: no drug without a route — open Access instead
     if (Object.keys(s.vascular).length === 0) {
       set({ accessOverlay: true, epiOverlay: false, pulseCheckOverlay: false, pulseCheckPausedAt: null });
+      return;
+    }
+    if (s.arrestType === 'hypothermic' && !s.coreWarm) {
+      set({ showHypoEpiConfirm: true, epiOverlay: false, pulseCheckOverlay: false, pulseCheckPausedAt: null });
       return;
     }
     set({ epiOverlay: !s.epiOverlay });
@@ -524,6 +582,11 @@ function PrimaryActions() {
       set({ accessOverlay: true, epiOverlay: false, pulseCheckOverlay: false, pulseCheckPausedAt: null });
       return;
     }
+    // Hypothermic + cold: protocol holds meds — confirm (give-anyway) instead of opening dose overlay
+    if (s.arrestType === 'hypothermic' && !s.coreWarm) {
+      set({ showHypoEpiConfirm: true, epiOverlay: false, pulseCheckOverlay: false, pulseCheckPausedAt: null, accessOverlay: false });
+      return;
+    }
     set({ epiOverlay: !s.epiOverlay, pulseCheckOverlay: false, pulseCheckPausedAt: null, accessOverlay: false });
   };
   const confirmEpi = () => {
@@ -537,6 +600,7 @@ function PrimaryActions() {
         epiLastAt: prev.elapsed,
         epiCount: newCount,
         showTraumaticEpiConfirm: false,
+        showHypoEpiConfirm: false,
         medsLog: [...prev.medsLog, { name: 'Epinephrine', dose, t: prev.elapsed, type: 'epi' }],
         log: [...prev.log, {
           t: prev.elapsed,
@@ -598,16 +662,20 @@ function PrimaryActions() {
           sublabel={
             s.cprStartedAt == null ? 'start CPR first'
             : Object.keys(s.vascular).length === 0 ? 'needs IV/IO access'
+            : (s.arrestType === 'hypothermic' && !s.coreWarm) ? 'hold until 86°F'
             : (s.epiCount === 0 ? 'first dose' : `${s.epiCount} given`)
           }
-          locked={s.cprStartedAt != null && Object.keys(s.vascular).length === 0}
+          locked={s.cprStartedAt != null && (Object.keys(s.vascular).length === 0 || (s.arrestType === 'hypothermic' && !s.coreWarm))}
           onClick={doEpi}
         />
         <PrimaryBtn
           tint="#fff3e0" fg="#9a4d05"
           icon={<Ic.Bolt s={26} c="#d97706" />}
           label="SHOCK"
-          sublabel={s.shocks.length > 0 ? `${s.shocks.length} delivered` : 'select joules'}
+          sublabel={
+            (s.arrestType === 'hypothermic' && !s.coreWarm && s.shocks.length >= 1) ? 'hold until 86°F'
+            : s.shocks.length > 0 ? `${s.shocks.length} delivered` : 'select joules'
+          }
           onClick={doShock}
         />
       </div>
@@ -638,6 +706,7 @@ function PrimaryActions() {
         />
       </div>
       {s.showTraumaticEpiConfirm && <TraumaticEpiConfirm onConfirm={confirmEpi} onCancel={() => set({ showTraumaticEpiConfirm: false })} />}
+      {s.showHypoEpiConfirm && <HypoEpiConfirm onConfirm={confirmEpi} onCancel={() => set({ showHypoEpiConfirm: false })} />}
     </>
   );
 }
@@ -663,6 +732,33 @@ function TraumaticEpiConfirm({ onConfirm, onCancel }) {
           flex: 1, padding: '9px', borderRadius: 8, background: '#d97706', color: '#fff',
           fontWeight: 700, fontSize: 13,
         }}>Confirm dose</button>
+      </div>
+    </div>
+  );
+}
+
+function HypoEpiConfirm({ onConfirm, onCancel }) {
+  return (
+    <div style={{
+      margin: '8px 12px 0', padding: 12, background: '#e0f2fe',
+      borderLeft: '4px solid #0ea5e9', borderRadius: 10, fontSize: 12,
+    }}>
+      <div style={{ fontWeight: 700, color: '#075985', marginBottom: 4 }}>
+        Core &lt;86°F — confirm Epi?
+      </div>
+      <div style={{ color: '#075985', marginBottom: 9, lineHeight: 1.4 }}>
+        Protocol withholds IV/IO meds until rewarmed above 86°F (30°C). Mark core
+        temp ≥86°F if rewarmed, or give anyway by provider judgment.
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={onCancel} style={{
+          flex: 1, padding: '9px', borderRadius: 8, background: 'var(--card)', color: '#075985',
+          border: '1px solid #0ea5e955', fontWeight: 600, fontSize: 13,
+        }}>Cancel</button>
+        <button onClick={onConfirm} style={{
+          flex: 1, padding: '9px', borderRadius: 8, background: '#0ea5e9', color: '#fff',
+          fontWeight: 700, fontSize: 13,
+        }}>Give anyway</button>
       </div>
     </div>
   );
@@ -733,6 +829,14 @@ function PulseCheckOverlay() {
           <Ic.X s={13} c="#3a4252" />
         </button>
       </div>
+      {s.arrestType === 'hypothermic' && (
+        <div style={{
+          fontSize: 11, color: '#075985', background: '#e0f2fe', borderRadius: 8,
+          padding: '7px 9px', marginBottom: 9, fontWeight: 600, lineHeight: 1.35,
+        }}>
+          Assess for a pulse up to 45 sec — profound bradycardia is common when cold.
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <button onClick={present} style={{
           background: '#1f9d55', color: '#fff', padding: '16px 8px',
@@ -1384,6 +1488,7 @@ function FocusMode() {
   const giveEpi = () => {
     if (!hasAccess) { set({ focusMode: false, accessOverlay: true }); return; }
     if (s.arrestType === 'traumatic') { set({ focusMode: false, showTraumaticEpiConfirm: true }); return; }
+    if (s.arrestType === 'hypothermic' && !s.coreWarm) { set({ focusMode: false, showHypoEpiConfirm: true }); return; }
     setS(prev => {
       const n = prev.epiCount + 1;
       const dose = prev.patientMode === 'pediatric' ? BROSELOW[prev.broselowIdx].epi : '1 mg IV/IO (1:10,000)';
@@ -1496,10 +1601,14 @@ function FocusMode() {
       ) : (
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 10, padding: '6px 12px 12px' }}>
           <BigBtn bg="#7a1620" fg="#fff" label={s.epiCount === 0 ? 'EPI' : `EPI ${s.epiCount}`}
-            sub={!hasAccess ? 'needs IV/IO' : (epiSec != null ? `last ${fmtMMSS(epiSec)}` : 'give 1 mg')}
-            icon={<Ic.Pill s={40} c="#fff" />} onClick={giveEpi} locked={!hasAccess} />
+            sub={!hasAccess ? 'needs IV/IO'
+              : (s.arrestType === 'hypothermic' && !s.coreWarm) ? 'hold until 86°F'
+              : (epiSec != null ? `last ${fmtMMSS(epiSec)}` : 'give 1 mg')}
+            icon={<Ic.Pill s={40} c="#fff" />} onClick={giveEpi}
+            locked={!hasAccess || (s.arrestType === 'hypothermic' && !s.coreWarm)} />
           <BigBtn bg="#7a4a06" fg="#fff" label="SHOCK"
-            sub={`${s.lastJoules || 200} J${s.shocks.length ? ` · ${s.shocks.length} given` : ''}`}
+            sub={(s.arrestType === 'hypothermic' && !s.coreWarm && s.shocks.length >= 1) ? 'hold until 86°F'
+              : `${s.lastJoules || 200} J${s.shocks.length ? ` · ${s.shocks.length} given` : ''}`}
             icon={<Ic.Bolt s={40} c="#fff" />} onClick={giveShock} />
           <BigBtn bg="#123a6e" fg="#fff" label="PULSE" sub="check now"
             icon={<Ic.Heart s={38} c="#fff" />} onClick={() => setPulsePanel(true)} />
@@ -1514,5 +1623,5 @@ function FocusMode() {
 Object.assign(window, {
   StatusBar, AlertBanner, SubTimers, PrimaryActions, PulseCheckOverlay, AccessOverlay, EpiOverlay,
   PhaseDecision, TerminateConfirm, TwentyMinDecision, TabBar, FlowRibbon, InitialRhythmCheck,
-  ProgressRing, FocusMode, FocusEnterButton,
+  ProgressRing, FocusMode, FocusEnterButton, HypoTempToggle,
 });

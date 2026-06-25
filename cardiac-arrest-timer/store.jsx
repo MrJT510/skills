@@ -172,6 +172,7 @@ function initialState() {
     patientMode: 'adult',                // 'adult' | 'pediatric'
     broselowIdx: 0,
     arrestType: 'medical',
+    coreWarm: false,                     // hypothermic mode: false = core <86°F (30°C)
     witnessed: 'witnessed',              // 'witnessed' | 'unwitnessed'
     bystanderCpr: 'yes',                 // 'yes' | 'no'
     codeStatus: 'full',                  // 'full' | 'dnr' | 'obvious-death'
@@ -246,6 +247,7 @@ function initialState() {
     show20MinDecision: false,
     showTerminateConfirm: false,
     showTraumaticEpiConfirm: false,
+    showHypoEpiConfirm: false,
     flashTab: null,
     focusMode: false,
   };
