@@ -240,6 +240,27 @@ function ExportTab() {
     }
   };
 
+  const printRecord = () => {
+    const w = window.open('', '_blank');
+    if (!w) { alert('Pop-up blocked — allow pop-ups, then tap Print again to save as PDF.'); return; }
+    const esc = (str) => String(str).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const html =
+      '<!doctype html><html><head><meta charset="utf-8"><title>Resuscribe — Cardiac Arrest Record</title>' +
+      '<style>@page{margin:14mm;}' +
+      'body{font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;color:#111;margin:0;}' +
+      'h1{font-size:16px;margin:0;}.sub{color:#555;font-size:11px;margin:3px 0 12px;}' +
+      'pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}' +
+      'hr{border:none;border-top:1px solid #ddd;margin:10px 0;}</style></head><body>' +
+      '<h1><span style="color:#15304e">Resus</span><span style="color:#1f9d55">cribe</span> — Cardiac Arrest Resuscitation Record</h1>' +
+      '<div class="sub">EMS resuscitation protocol · Zero patient identifiers · ' + esc(clockNow()) + '</div><hr>' +
+      '<pre>' + esc(text) + '</pre>' +
+      '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();},150);};</scr' + 'ipt>' +
+      '</body></html>';
+    w.document.write(html);
+    w.document.close();
+    setExported(true);
+  };
+
   const InfoRow = ({ label, val }) => (
     <div style={{
       display: 'flex', justifyContent: 'space-between', gap: 12,
@@ -266,6 +287,9 @@ function ExportTab() {
                    title={copied ? '✓ Copied to clipboard' : 'Copy to clipboard'}
                    sub="Paste into ImageTrend or AirDrop"
                    onClick={copy} highlight={copied} />
+        <ExportBtn icon={<Ic.File s={18} c="#0b0f17" />} title="Print / Save as PDF"
+                   sub="Opens a clean printable record — print or save as PDF"
+                   onClick={printRecord} />
       </div>
 
       {/* New case */}

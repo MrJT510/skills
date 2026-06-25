@@ -39,6 +39,18 @@ function pedJoules(weightKg) {
   ];
 }
 
+// Recommended next defibrillation energy for the current patient + shock count.
+// Pediatric escalates 2 J/kg (first) → 4 J/kg (subsequent); adult uses the
+// last selected energy (default 200 J).
+function nextShockJoules(s) {
+  if (s.patientMode === 'pediatric') {
+    const opts = pedJoules(BROSELOW[s.broselowIdx].wt);
+    const o = s.shocks.length === 0 ? opts[0] : opts[1];
+    return { j: o.j, perKg: o.jPerKg };
+  }
+  return { j: (typeof s.lastJoules === 'number' ? s.lastJoules : 200), perKg: null };
+}
+
 const ARREST_TYPES = [
   { id: 'medical',     label: 'Medical' },
   { id: 'traumatic',   label: 'Traumatic' },
@@ -185,6 +197,8 @@ function initialState() {
 
     epiLastAt: null,
     epiCount: 0,
+    epiIntervalSec: 180,                 // Epi re-dose interval: 180 (3 min) or 300 (5 min)
+    roscChecklist: {},                   // post-ROSC checklist {[id]: t}
 
     pulseCheckResetAt: 0,
     pulseCheckOverlay: false,

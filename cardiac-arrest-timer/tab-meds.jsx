@@ -127,7 +127,7 @@ function MedsTab() {
   const pedDose = s.patientMode === 'pediatric' ? BROSELOW[s.broselowIdx] : null;
   const epiDose = pedDose ? pedDose.epi : '1 mg IV/IO (1:10,000)';
   const epiSec = s.epiLastAt == null ? null : (s.elapsed - s.epiLastAt);
-  const epiDue = epiSec != null && epiSec >= 180;   // next Epi due ~every 3-5 min
+  const epiDue = epiSec != null && epiSec >= (s.epiIntervalSec || 180);   // configurable 3-5 min
 
   // Last given time for non-Epi single-shot drugs
   const lastTimeOf = (name) => {

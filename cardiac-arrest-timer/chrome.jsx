@@ -150,7 +150,7 @@ function computeNextStep(s) {
 
   const hasAccess = Object.keys(s.vascular).length > 0;
   const epiSec = s.epiLastAt == null ? null : (s.elapsed - s.epiLastAt);
-  const epiDue = s.epiCount === 0 || (epiSec != null && epiSec >= 180);
+  const epiDue = s.epiCount === 0 || (epiSec != null && epiSec >= (s.epiIntervalSec || 180));
 
   // ── Shockable: VF / Pulseless VT (protocol §4) ──
   if (SHOCKABLE(id)) {
@@ -449,13 +449,14 @@ function SubTimers() {
 
   // Epi timer
   const epiSec = s.epiLastAt == null ? null : (s.elapsed - s.epiLastAt);
+  const epiInt = s.epiIntervalSec || 180;
   let epiBg = 'var(--card)', epiFg = 'var(--ink)', epiBorder = 'var(--line)', epiCrit = false, epiWarn = false;
   if (epiSec != null) {
-    if (epiSec >= 300)      { epiBg = '#dc2626'; epiFg = '#fff'; epiBorder = '#dc2626'; epiCrit = true; }
-    else if (epiSec >= 180) { epiBg = '#fff3e0'; epiFg = '#9a4d05'; epiBorder = '#d97706'; epiWarn = true; }
+    if (epiSec >= epiInt + 120) { epiBg = '#dc2626'; epiFg = '#fff'; epiBorder = '#dc2626'; epiCrit = true; }
+    else if (epiSec >= epiInt)  { epiBg = '#fff3e0'; epiFg = '#9a4d05'; epiBorder = '#d97706'; epiWarn = true; }
   }
   const epiValue = epiSec == null ? '—:—' : fmtMMSS(epiSec);
-  const epiSub = epiSec == null ? 'tap to give Epi' : (epiSec >= 300 ? 'OVERDUE — give now' : epiSec >= 180 ? 'due — give now' : 'since last Epi');
+  const epiSub = epiSec == null ? 'tap to give Epi' : (epiSec >= epiInt + 120 ? 'OVERDUE — give now' : epiSec >= epiInt ? 'due — give now' : 'since last Epi');
 
   // Pulse check countdown — frozen when overlay is open
   const pulseElapsed = s.pulseCheckPausedAt != null
@@ -674,6 +675,7 @@ function PrimaryActions() {
           label="SHOCK"
           sublabel={
             (s.arrestType === 'hypothermic' && !s.coreWarm && s.shocks.length >= 1) ? 'hold until 86°F'
+            : s.patientMode === 'pediatric' ? `${nextShockJoules(s).j} J · ${nextShockJoules(s).perKg} J/kg`
             : s.shocks.length > 0 ? `${s.shocks.length} delivered` : 'select joules'
           }
           onClick={doShock}
@@ -1500,8 +1502,8 @@ function FocusMode() {
   const giveShock = () => {
     setS(prev => {
       const n = prev.shocks.length + 1;
-      const j = prev.lastJoules || 200;
-      return { ...prev, shocks: [...prev.shocks, { j, t: prev.elapsed, n }],
+      const j = prev.patientMode === 'pediatric' ? nextShockJoules(prev).j : (prev.lastJoules || 200);
+      return { ...prev, shocks: [...prev.shocks, { j, t: prev.elapsed, n }], lastJoules: j,
         log: [...prev.log, { t: prev.elapsed, action: `Shock #${n} delivered`, detail: j === 'Sync' ? 'Synchronized' : `${j} J`, kind: 'shock' }] };
     });
   };
@@ -1608,6 +1610,7 @@ function FocusMode() {
             locked={!hasAccess || (s.arrestType === 'hypothermic' && !s.coreWarm)} />
           <BigBtn bg="#7a4a06" fg="#fff" label="SHOCK"
             sub={(s.arrestType === 'hypothermic' && !s.coreWarm && s.shocks.length >= 1) ? 'hold until 86°F'
+              : s.patientMode === 'pediatric' ? `${nextShockJoules(s).j} J · ${nextShockJoules(s).perKg} J/kg`
               : `${s.lastJoules || 200} J${s.shocks.length ? ` · ${s.shocks.length} given` : ''}`}
             icon={<Ic.Bolt s={40} c="#fff" />} onClick={giveShock} />
           <BigBtn bg="#123a6e" fg="#fff" label="PULSE" sub="check now"
@@ -1620,8 +1623,66 @@ function FocusMode() {
   );
 }
 
+// ─── Post-ROSC checklist ─────────────────────────────────
+const ROSC_CHECKLIST = [
+  { id: 'etco2',  label: 'ETCO₂ 30–40 mmHg (avoid hyperventilation)' },
+  { id: 'ecg12',  label: '12-lead ECG' },
+  { id: 'stemi',  label: 'STEMI → cath-capable / STEMI center' },
+  { id: 'bp',     label: 'SBP <90 → fluid bolus + pressor (Dopamine)' },
+  { id: 'airway', label: 'Secure airway · waveform capnography' },
+  { id: 'oxy',    label: 'Titrate O₂ — avoid hyperoxia (SpO₂ 94–98%)' },
+  { id: 'metab',  label: 'Check glucose · targeted temperature' },
+];
+
+function PostRoscChecklist() {
+  const { s, setS } = useStore();
+  if (s.status !== 'rosc') return null;
+  const done = s.roscChecklist || {};
+  const toggle = (it) => setS(prev => {
+    const cur = { ...(prev.roscChecklist || {}) };
+    let entry = null;
+    if (cur[it.id]) { delete cur[it.id]; }
+    else { cur[it.id] = prev.elapsed; entry = { t: prev.elapsed, action: `Post-ROSC: ${it.label}`, detail: 'Completed', kind: 'rosc' }; }
+    return { ...prev, roscChecklist: cur, log: entry ? [...prev.log, entry] : prev.log };
+  });
+  const count = Object.keys(done).length;
+  return (
+    <div style={{ padding: '8px 12px 0' }}>
+      <div style={{ background: 'var(--card)', border: '1.5px solid #2563eb55', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: '#e6efff', padding: '9px 13px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Ic.Heart s={15} c="#2563eb" />
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1746a8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Post-ROSC checklist</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: '#1746a8' }}>{count}/{ROSC_CHECKLIST.length}</span>
+        </div>
+        <div style={{ padding: '2px 10px 6px' }}>
+          {ROSC_CHECKLIST.map((it, i) => {
+            const on = !!done[it.id];
+            return (
+              <button key={it.id} onClick={() => toggle(it)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '10px 4px',
+                background: 'transparent', textAlign: 'left',
+                borderBottom: i < ROSC_CHECKLIST.length - 1 ? '1px solid var(--line)' : 'none',
+              }}>
+                <span style={{
+                  width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                  background: on ? '#1f9d55' : 'transparent',
+                  border: `2px solid ${on ? '#1f9d55' : 'var(--line-2)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{on && <Ic.Check s={13} c="#fff" />}</span>
+                <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, lineHeight: 1.3,
+                  color: on ? 'var(--ink-3)' : 'var(--ink)', textDecoration: on ? 'line-through' : 'none' }}>{it.label}</span>
+                {on && <span className="mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', flexShrink: 0 }}>{fmtMMSS(done[it.id])}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   StatusBar, AlertBanner, SubTimers, PrimaryActions, PulseCheckOverlay, AccessOverlay, EpiOverlay,
   PhaseDecision, TerminateConfirm, TwentyMinDecision, TabBar, FlowRibbon, InitialRhythmCheck,
-  ProgressRing, FocusMode, FocusEnterButton, HypoTempToggle,
+  ProgressRing, FocusMode, FocusEnterButton, HypoTempToggle, PostRoscChecklist,
 });

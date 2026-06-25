@@ -49,6 +49,7 @@ function ActiveScreen() {
       </div>
       {/* Scrolling tab content */}
       <div ref={scrollRef} className="scroll" style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1 }}>
+        <PostRoscChecklist />
         <div key={s.activeTab} className="tab-enter">
           <TabComp />
         </div>
@@ -183,6 +184,15 @@ function PhaseTweaksContent() {
                        onChange={(v) => set({ broselowIdx: parseInt(v) })}
                        options={BROSELOW.map((b, i) => ({ value: String(i), label: `${b.name} · ${b.kg}` }))} />
         )}
+      </TweakSection>
+
+      <TweakSection label="Protocol">
+        <TweakRadio label="Epi interval" value={String(s.epiIntervalSec || 180)}
+                     onChange={(v) => set({ epiIntervalSec: parseInt(v) })}
+                     options={[{ value: '180', label: '3 min' }, { value: '300', label: '5 min' }]} />
+        <div style={{ fontSize: 10.5, color: '#9aa3ad', padding: '2px 0 4px', lineHeight: 1.45 }}>
+          Epinephrine re-dose cadence (AHA allows every 3–5 min). Drives the Epi timer, "due" cues, and next-step guidance.
+        </div>
       </TweakSection>
 
       <TweakSection label="Quick actions">
